@@ -23,6 +23,11 @@ public class User {
     }
 
     public User(String name, String lastName, Byte age) {
+        this(0, name, lastName, age);
+    }
+
+    public User(long id, String name, String lastName, Byte age) {
+        this.id = id;
         this.name = name;
         this.lastName = lastName;
         this.age = age;
@@ -58,5 +63,10 @@ public class User {
 
     public void setAge(Byte age) {
         this.age = age;
+    }
+
+    @Override
+    public String toString() {
+        return String.format("\nUser {ID: %d, name: %s, lastname: %s, age: %d}\n", id, name, lastName, age);
     }
 }
