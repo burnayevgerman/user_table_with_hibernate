@@ -2,49 +2,68 @@ package jm.task.core.jdbc.dao;
 
 import jm.task.core.jdbc.model.User;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class UserDaoJDBCImpl implements UserDao {
     private static final String TABLE_NAME = "users";
+    private Connection connectionDB = Util.getConnectionDB();
 
     @Override
     public void createUsersTable() {
-        execute("CREATE TABLE IF NOT EXISTS " + TABLE_NAME + " (" +
-                "id INT NOT NULL AUTO_INCREMENT, " +
-                "name VARCHAR(45) NULL, \n" +
-                "lastname VARCHAR(64) NULL,\n" +
-                "age INT(3) NULL,\n" +
-                "PRIMARY KEY (id),\n" +
-                "UNIQUE KEY id_UNIQUE (id ASC) \n" +
-                "VISIBLE)");
+        try (Statement statement = connectionDB.createStatement()) {
+            statement.execute(  "CREATE TABLE IF NOT EXISTS " + TABLE_NAME + " (" +
+                                    "id INT NOT NULL AUTO_INCREMENT, " +
+                                    "name VARCHAR(45) NULL, " +
+                                    "lastname VARCHAR(64) NULL, " +
+                                    "age INT(3) NULL, " +
+                                    "PRIMARY KEY (id), " +
+                                    "UNIQUE KEY id_UNIQUE (id ASC) " +
+                                    "VISIBLE)");
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
     public void dropUsersTable() {
-        execute("DROP TABLE IF EXISTS " + TABLE_NAME);
+        try (Statement statement = connectionDB.createStatement()) {
+            statement.execute("DROP TABLE IF EXISTS " + TABLE_NAME);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
     public void saveUser(String name, String lastName, byte age) {
-        execute("INSERT INTO %s (name, lastname, age) VALUES ('%s', '%s', '%d')",
-                TABLE_NAME, name, lastName, age);
+        try (PreparedStatement statement = connectionDB.prepareStatement(
+                "INSERT INTO " + TABLE_NAME + " (name, lastname, age) VALUES (?, ?, ?)"
+        )) {
+            statement.setString(1, name);
+            statement.setString(2, lastName);
+            statement.setByte(3, age);
+            statement.execute();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
     public void removeUserById(long id) {
-        execute("DELETE FROM %s WHERE id=%d", TABLE_NAME, id);
+        try (PreparedStatement statement = connectionDB.prepareStatement(
+                "DELETE FROM " + TABLE_NAME + " WHERE id=?"
+        )) {
+            statement.setLong(1, id);
+            statement.execute();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
     public List<User> getAllUsers() {
-        try (UtilDB utilDB = new UtilDB();
-                Statement statement = utilDB.getStatement()) {
+        try (Statement statement = connectionDB.createStatement()) {
             ResultSet resultData = statement.executeQuery("SELECT * FROM " + TABLE_NAME);
             List<User> userList = new ArrayList<>();
 
@@ -67,13 +86,8 @@ public class UserDaoJDBCImpl implements UserDao {
 
     @Override
     public void cleanUsersTable() {
-        execute("DELETE FROM " + TABLE_NAME);
-    }
-
-    private void execute(String statementStr, Object ... values) {
-        try (UtilDB utilDB = new UtilDB();
-                Statement statement = utilDB.getStatement()) {
-            statement.executeUpdate(String.format(statementStr, values));
+        try (Statement statement = connectionDB.createStatement()) {
+            statement.executeUpdate("DELETE FROM " + TABLE_NAME);
         } catch (SQLException e) {
             e.printStackTrace();
         }
